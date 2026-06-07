@@ -12,7 +12,9 @@ A clean, native-looking desktop widget that shows your **Claude / Claude Code** 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
 [![Stars](https://img.shields.io/github/stars/alexgrygoriev/claude-usage-widget?style=social)](https://github.com/alexgrygoriev/claude-usage-widget/stargazers)
 
-<img src="docs/demo.png" alt="Claude Usage Widget on the macOS desktop" width="320">
+<img src="docs/demo.gif" alt="Claude Usage Widget filling in on the macOS desktop" width="380">
+
+<sub>The desktop card — plus a menu-bar variant if you prefer it tiny.</sub>
 
 <sub>⭐ If this saved you from a surprise rate-limit, drop a star — it genuinely helps.</sub>
 
@@ -76,6 +78,18 @@ On first run, macOS will ask **once** whether Übersicht may use the `Claude Cod
 
 > 💡 Übersicht widgets live *on the desktop*, behind your windows. Hide your windows (or press `F11` / swipe to show desktop) to see it. To move or resize it, edit the `top` / `right` / `width` values in `claude-limits.widget/index.jsx`.
 
+## 🧊 Prefer the menu bar?
+
+There's a tiny **menu-bar variant** too (for [SwiftBar](https://github.com/swiftbar/SwiftBar) or [xbar](https://github.com/matryer/xbar)) — same official data, condensed to `☕ 64%` with a dropdown of every window:
+
+```bash
+brew install --cask swiftbar     # if you don't have it
+cp menubar/claude-limits.5m.sh "$HOME/path/to/your/swiftbar-plugins/"
+chmod +x "$HOME/path/to/your/swiftbar-plugins/claude-limits.5m.sh"
+```
+
+Point SwiftBar at its plugins folder and you're done. The `.5m.` in the filename sets a 5-minute refresh.
+
 ## ⚙️ Configuration
 
 Everything lives in `claude-limits.widget/index.jsx`:
@@ -130,7 +144,7 @@ Save the file — Übersicht hot-reloads instantly.
 ## 🗺️ Roadmap
 
 - [x] One-line install script
-- [ ] Menu-bar variant (SwiftBar/xbar)
+- [x] Menu-bar variant (SwiftBar/xbar)
 - [ ] Click-through to open `/usage`
 - [ ] Light/dark auto-theming
 - [ ] Configurable layout presets (compact / detailed)
