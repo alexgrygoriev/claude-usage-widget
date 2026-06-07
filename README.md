@@ -10,7 +10,7 @@ A clean, native-looking desktop widget that shows your **Claude / Claude Code** 
 [![Übersicht](https://img.shields.io/badge/Übersicht-1.6%2B-007aff)](https://tracesof.net/uebersicht/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#-contributing)
-[![Stars](https://img.shields.io/github/stars/yourname/claude-usage-widget?style=social)](https://github.com/yourname/claude-usage-widget/stargazers)
+[![Stars](https://img.shields.io/github/stars/alexgrygoriev/claude-usage-widget?style=social)](https://github.com/alexgrygoriev/claude-usage-widget/stargazers)
 
 <img src="docs/demo.png" alt="Claude Usage Widget on the macOS desktop" width="320">
 
@@ -46,12 +46,21 @@ This widget puts those exact numbers on your desktop, refreshing itself quietly 
 
 ## 🚀 Install
 
+**One line** (installs Übersicht if needed, drops in the widget, launches it):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alexgrygoriev/claude-usage-widget/main/install.sh | bash
+```
+
+<details>
+<summary>…or install manually</summary>
+
 ```bash
 # 1. Install Übersicht (the widget host)
 brew install --cask ubersicht
 
 # 2. Clone this repo
-git clone https://github.com/yourname/claude-usage-widget.git
+git clone https://github.com/alexgrygoriev/claude-usage-widget.git
 cd claude-usage-widget
 
 # 3. Drop the widget into Übersicht's widgets folder
@@ -61,6 +70,7 @@ chmod +x "$HOME/Library/Application Support/Übersicht/widgets/claude-limits.wid
 # 4. Launch Übersicht
 open -a "Übersicht"
 ```
+</details>
 
 On first run, macOS will ask **once** whether Übersicht may use the `Claude Code-credentials` item in your Keychain — click **Always Allow**. The card appears in the top-right corner of your desktop.
 
@@ -119,7 +129,7 @@ Save the file — Übersicht hot-reloads instantly.
 
 ## 🗺️ Roadmap
 
-- [ ] One-line install script
+- [x] One-line install script
 - [ ] Menu-bar variant (SwiftBar/xbar)
 - [ ] Click-through to open `/usage`
 - [ ] Light/dark auto-theming
