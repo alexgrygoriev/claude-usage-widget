@@ -1,6 +1,6 @@
-// Claude Limits — Übersicht desktop widget
+// Claude Usage Widget — Übersicht desktop widget
 // Light, airy Apple-style card (like the native Weather widget).
-// Shows the same "used %" numbers as the in-app /usage command.
+// Shows the same "used %" numbers as Claude's in-app /usage command.
 
 export const refreshFrequency = 5 * 60 * 1000; // every 5 minutes
 
@@ -46,7 +46,7 @@ const fmtReset = (iso) => {
   const hh = String(t.getHours()).padStart(2, "0");
   const mm = String(t.getMinutes()).padStart(2, "0");
   if (sameDay) return `${hh}:${mm}`;
-  const days = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return `${days[t.getDay()]} ${hh}:${mm}`;
 };
 
@@ -87,22 +87,22 @@ export const render = ({ output }) => {
       <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
         <span style={{ fontSize: 17, marginRight: 8 }}>☕</span>
         <span style={{ fontSize: 12, fontWeight: 600, color: "#86868b", letterSpacing: 1.4, textTransform: "uppercase" }}>
-          Claude · использовано
+          Claude · used
         </span>
       </div>
       {children}
     </div>
   );
 
-  if (!d) return <Shell><div style={{ fontSize: 13, color: "#a1a1a6" }}>…загрузка</div></Shell>;
-  if (d.error === "no-token") return <Shell><div style={{ fontSize: 13, color: "#ff3b30" }}>Нет токена в Keychain</div></Shell>;
-  if (d.error) return <Shell><div style={{ fontSize: 13, color: "#ff9f0a" }}>Нет связи</div></Shell>;
+  if (!d) return <Shell><div style={{ fontSize: 13, color: "#a1a1a6" }}>…loading</div></Shell>;
+  if (d.error === "no-token") return <Shell><div style={{ fontSize: 13, color: "#ff3b30" }}>No token in Keychain</div></Shell>;
+  if (d.error) return <Shell><div style={{ fontSize: 13, color: "#ff9f0a" }}>No connection</div></Shell>;
 
   const rows = [
-    ["Сессия · 5ч", d.five_hour],
-    ["Неделя · 7д", d.seven_day],
-    ["Sonnet · 7д", d.seven_day_sonnet],
-    ["Opus · 7д", d.seven_day_opus],
+    ["Session · 5h", d.five_hour],
+    ["Week · 7d", d.seven_day],
+    ["Sonnet · 7d", d.seven_day_sonnet],
+    ["Opus · 7d", d.seven_day_opus],
   ];
 
   return (
