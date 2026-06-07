@@ -1,0 +1,17 @@
+# Runtime cache written by the widget — contains your usage numbers, never commit
+claude-limits.widget/.last.json
+**/.last.json
+
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+
+# Never commit anything that could hold a token / secret
+*.env
+.env*
+*credentials*
+*secret*
