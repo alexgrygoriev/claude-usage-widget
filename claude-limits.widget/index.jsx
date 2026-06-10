@@ -1,10 +1,52 @@
 // Claude Usage Widget — Übersicht desktop widget
 // Light, airy Apple-style card (like the native Weather widget).
 // Shows the same "used %" numbers as Claude's in-app /usage command.
+//
+// Interactive:
+//   • ↻ button  — re-pulls live usage on demand (manual reset/refresh)
+//   • drag the header to move the card anywhere; position is remembered
+//   • double-click the header to snap the card back to its default spot
 
-export const refreshFrequency = 5 * 60 * 1000; // every 5 minutes
+import { run } from "uebersicht";
 
-export const command = "bash './claude-limits.widget/fetch.sh'";
+export const refreshFrequency = 5 * 60 * 1000; // auto-refresh every 5 minutes
+
+const FETCH = "bash './claude-limits.widget/fetch.sh'";
+const POS_KEY = "claude-limits-widget-pos";
+
+// ---------------------------------------------------------------------------
+// Data loading — dispatch-driven so the ↻ button can re-pull at any moment,
+// not only on the 5-minute cycle. `command` is what Übersicht runs on its
+// schedule; the button calls the same loader.
+// ---------------------------------------------------------------------------
+const loadData = (dispatch) => {
+  dispatch({ type: "LOADING" });
+  run(FETCH)
+    .then((output) => dispatch({ type: "FETCHED", output }))
+    .catch((error) => dispatch({ type: "ERROR", error: String(error) }));
+};
+
+export const command = loadData;
+
+export const initialState = {
+  output: null,
+  loading: true,
+  error: null,
+  fetchedAt: null,
+};
+
+export const updateState = (event, prev) => {
+  switch (event.type) {
+    case "LOADING":
+      return { ...prev, loading: true };
+    case "FETCHED":
+      return { output: event.output, loading: false, error: null, fetchedAt: new Date() };
+    case "ERROR":
+      return { ...prev, loading: false, error: event.error };
+    default:
+      return prev;
+  }
+};
 
 export const className = `
   top: 60px;
@@ -23,6 +65,95 @@ export const className = `
     0 12px 34px rgba(0, 0, 0, 0.16),
     inset 0 1px 1px rgba(255, 255, 255, 0.8);
 `;
+
+// ---------------------------------------------------------------------------
+// Drag-to-move. The card's positioned element is the Übersicht wrapper (the
+// element the `className` above is applied to) — i.e. the parent of whatever
+// `render` returns. We move that element and remember where it lands.
+// ---------------------------------------------------------------------------
+let rootEl = null;
+
+const applySavedPosition = (root) => {
+  if (!root) return;
+  try {
+    const pos = JSON.parse(localStorage.getItem(POS_KEY) || "null");
+    if (pos && typeof pos.left === "number" && typeof pos.top === "number") {
+      root.style.left = pos.left + "px";
+      root.style.top = pos.top + "px";
+      root.style.right = "auto";
+    }
+  } catch (e) {
+    /* ignore corrupt storage */
+  }
+};
+
+const makeDraggable = (handle, root) => {
+  if (!handle || !root || handle.__dragWired) return;
+  handle.__dragWired = true;
+
+  let startX, startY, startLeft, startTop, dragging = false;
+
+  const onMove = (e) => {
+    if (!dragging) return;
+    root.style.left = startLeft + (e.clientX - startX) + "px";
+    root.style.top = startTop + (e.clientY - startY) + "px";
+  };
+
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.style.cursor = "grab";
+    window.removeEventListener("mousemove", onMove);
+    window.removeEventListener("mouseup", onUp);
+    const rect = root.getBoundingClientRect();
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify({ left: rect.left, top: rect.top }));
+    } catch (e) {
+      /* ignore */
+    }
+  };
+
+  handle.addEventListener("mousedown", (e) => {
+    if (e.target.closest("[data-no-drag]")) return; // don't drag from the button
+    const rect = root.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
+    startX = e.clientX;
+    startY = e.clientY;
+    dragging = true;
+    // pin to left/top so the move is absolute regardless of the css `right`
+    root.style.left = startLeft + "px";
+    root.style.top = startTop + "px";
+    root.style.right = "auto";
+    handle.style.cursor = "grabbing";
+    e.preventDefault();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  });
+};
+
+const wireCard = (node) => {
+  if (!node) return;
+  rootEl = node.parentElement; // the positioned Übersicht wrapper
+  applySavedPosition(rootEl);
+  makeDraggable(node.querySelector("[data-drag-handle]"), rootEl);
+};
+
+const resetPosition = () => {
+  if (!rootEl) return;
+  try {
+    localStorage.removeItem(POS_KEY);
+  } catch (e) {
+    /* ignore */
+  }
+  rootEl.style.left = "auto";
+  rootEl.style.right = "40px";
+  rootEl.style.top = "60px";
+};
+
+// ---------------------------------------------------------------------------
+// Rendering helpers
+// ---------------------------------------------------------------------------
 
 // Apple system colors. Color by USED %: low usage = green, high = red.
 const colorFor = (used) => {
@@ -49,6 +180,33 @@ const fmtReset = (iso) => {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   return `${days[t.getDay()]} ${hh}:${mm}`;
 };
+
+const fmtUpdated = (d) => {
+  if (!d) return "";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `updated ${hh}:${mm}`;
+};
+
+const buttonStyle = {
+  flex: "0 0 auto",
+  width: 26,
+  height: 26,
+  borderRadius: 13,
+  border: "0.5px solid rgba(0,0,0,0.08)",
+  background: "rgba(255,255,255,0.7)",
+  color: "#3c3c43",
+  fontSize: 14,
+  lineHeight: "24px",
+  textAlign: "center",
+  cursor: "pointer",
+  padding: 0,
+  marginLeft: 8,
+  boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+  transition: "opacity 0.2s ease",
+};
+
+const msgStyle = { fontSize: 13, color: "#a1a1a6" };
 
 const Row = ({ label, w, last }) => {
   const used = usedOf(w);
@@ -78,36 +236,69 @@ const Row = ({ label, w, last }) => {
   );
 };
 
-export const render = ({ output }) => {
-  let d = null;
-  try { d = JSON.parse(output); } catch (e) { d = null; }
-
-  const Shell = ({ children }) => (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <span style={{ fontSize: 17, marginRight: 8 }}>☕</span>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "#86868b", letterSpacing: 1.4, textTransform: "uppercase" }}>
-          Claude · used
+const Header = ({ loading, fetchedAt, dispatch }) => (
+  <div
+    data-drag-handle
+    onDoubleClick={resetPosition}
+    title="Drag to move · double-click to reset position"
+    style={{ display: "flex", alignItems: "center", marginBottom: 16, cursor: "grab", userSelect: "none" }}
+  >
+    <span style={{ fontSize: 17, marginRight: 8 }}>☕</span>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 600, color: "#86868b", letterSpacing: 1.4, textTransform: "uppercase" }}>
+        Claude · used
+      </span>
+      {fetchedAt ? (
+        <span style={{ fontSize: 10, color: "#b0b0b5", fontWeight: 400, letterSpacing: 0.2 }}>
+          {fmtUpdated(fetchedAt)}
         </span>
-      </div>
-      {children}
+      ) : null}
     </div>
-  );
+    <button
+      data-no-drag
+      onClick={() => loadData(dispatch)}
+      title="Refresh now"
+      style={{ ...buttonStyle, opacity: loading ? 0.4 : 1 }}
+    >↻</button>
+  </div>
+);
 
-  if (!d) return <Shell><div style={{ fontSize: 13, color: "#a1a1a6" }}>…loading</div></Shell>;
-  if (d.error === "no-token") return <Shell><div style={{ fontSize: 13, color: "#ff3b30" }}>No token in Keychain</div></Shell>;
-  if (d.error) return <Shell><div style={{ fontSize: 13, color: "#ff9f0a" }}>No connection</div></Shell>;
+export const render = (state, dispatch) => {
+  const { output, loading, error, fetchedAt } = state;
 
-  const rows = [
-    ["Session · 5h", d.five_hour],
-    ["Week · 7d", d.seven_day],
-    ["Sonnet · 7d", d.seven_day_sonnet],
-    ["Opus · 7d", d.seven_day_opus],
-  ];
+  let d = null;
+  try { d = output ? JSON.parse(output) : null; } catch (e) { d = null; }
+
+  let body;
+  if (!d && loading) {
+    body = <div style={msgStyle}>…loading</div>;
+  } else if (!d && error) {
+    body = <div style={{ ...msgStyle, color: "#ff9f0a" }}>No connection</div>;
+  } else if (!d) {
+    body = <div style={msgStyle}>No data</div>;
+  } else if (d.error === "no-token") {
+    body = <div style={{ ...msgStyle, color: "#ff3b30" }}>No token in Keychain</div>;
+  } else if (d.error) {
+    body = <div style={{ ...msgStyle, color: "#ff9f0a" }}>No connection</div>;
+  } else {
+    // Model-family buckets from /api/oauth/usage. These are family-level
+    // (not version-specific) — Opus 4.8 rolls up under seven_day_opus, so no
+    // change is needed for new model releases. A null bucket renders as "—".
+    const rows = [
+      ["Session · 5h", d.five_hour],
+      ["Week · 7d", d.seven_day],
+      ["Sonnet · 7d", d.seven_day_sonnet],
+      ["Opus · 7d", d.seven_day_opus],
+    ];
+    body = rows.map(([label, w], i) => (
+      <Row key={label} label={label} w={w} last={i === rows.length - 1} />
+    ));
+  }
 
   return (
-    <Shell>
-      {rows.map(([label, w], i) => <Row key={label} label={label} w={w} last={i === rows.length - 1} />)}
-    </Shell>
+    <div ref={wireCard}>
+      <Header loading={loading} fetchedAt={fetchedAt} dispatch={dispatch} />
+      {body}
+    </div>
   );
 };

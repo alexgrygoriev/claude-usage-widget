@@ -76,7 +76,7 @@ open -a "Übersicht"
 
 On first run, macOS will ask **once** whether Übersicht may use the `Claude Code-credentials` item in your Keychain — click **Always Allow**. The card appears in the top-right corner of your desktop.
 
-> 💡 Übersicht widgets live *on the desktop*, behind your windows. Hide your windows (or press `F11` / swipe to show desktop) to see it. To move or resize it, edit the `top` / `right` / `width` values in `claude-limits.widget/index.jsx`.
+> 💡 Übersicht widgets live *on the desktop*, behind your windows. Hide your windows (or press `F11` / swipe to show desktop) to see it. **Drag the header** to move the card anywhere — its position is remembered across refreshes; **double-click the header** to snap it back to the default corner. The **↻ button** re-pulls your live usage on demand (the card also auto-refreshes every 5 minutes and shows the last-updated time). To change the default spot or size, edit the `top` / `right` / `width` values in `claude-limits.widget/index.jsx`.
 
 ## 🧊 Prefer the menu bar?
 
