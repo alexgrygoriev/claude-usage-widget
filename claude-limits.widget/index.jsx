@@ -281,15 +281,15 @@ export const render = (state, dispatch) => {
   } else if (d.error) {
     body = <div style={{ ...msgStyle, color: "#ff9f0a" }}>No connection</div>;
   } else {
-    // Model-family buckets from /api/oauth/usage. These are family-level
-    // (not version-specific) — Opus 4.8 rolls up under seven_day_opus, so no
-    // change is needed for new model releases. A null bucket renders as "—".
+    // Buckets from /api/oauth/usage. Only rows the API actually populates are
+    // shown — buckets it returns as null (e.g. seven_day_opus on plans without
+    // a separate Opus cap) are dropped instead of rendering a permanent "—".
     const rows = [
       ["Session · 5h", d.five_hour],
       ["Week · 7d", d.seven_day],
       ["Sonnet · 7d", d.seven_day_sonnet],
       ["Opus · 7d", d.seven_day_opus],
-    ];
+    ].filter(([, w]) => usedOf(w) != null);
     body = rows.map(([label, w], i) => (
       <Row key={label} label={label} w={w} last={i === rows.length - 1} />
     ));
