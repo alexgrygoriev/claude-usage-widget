@@ -32,8 +32,24 @@ else
 fi
 chmod +x "$WIDGETS/$NAME/fetch.sh"
 
-# 3. Launch
-open -a "Übersicht" || true
+# 3. Launch (robust: the app name has an umlaut, so `open -a "Übersicht"` often
+#    fails via Launch Services — go by bundle id / full path instead).
+APP="/Applications/Übersicht.app"
+BUNDLE_ID="tracesOf.Uebersicht"
+launch_ubersicht() {
+  open -b "$BUNDLE_ID" 2>/dev/null && return 0
+  [ -d "$APP" ] && open "$APP" 2>/dev/null && return 0
+  open -a "Übersicht" 2>/dev/null && return 0
+  return 1
+}
+if launch_ubersicht; then
+  echo "→ Übersicht launched."
+else
+  echo "⚠ Could not auto-launch Übersicht — open it manually from /Applications." >&2
+fi
+
+# 4. Always start on login, so the widget is always there after a reboot.
+osascript -e 'tell application "System Events" to if not (exists login item "Übersicht") then make login item at end with properties {path:"'"$APP"'", hidden:false}' >/dev/null 2>&1 || true
 
 echo "✅ Done. Look at the top-right of your desktop."
 echo "   On first run, click 'Always Allow' on the Keychain prompt."
