@@ -54,6 +54,8 @@ This widget puts those exact numbers on your desktop, refreshing itself quietly 
 curl -fsSL https://raw.githubusercontent.com/alexgrygoriev/claude-usage-widget/main/install.sh | bash
 ```
 
+That's the whole setup — it installs Übersicht (via Homebrew, or a direct download if Homebrew is missing or its prefix isn't writable), drops in the widget, de-quarantines and launches it, and adds it to your login items so it's there after a reboot. The only thing left for you is clicking **Always Allow** on the one-time Keychain prompt.
+
 <details>
 <summary>…or install manually</summary>
 
@@ -140,6 +142,7 @@ Save the file — Übersicht hot-reloads instantly.
 | **Nothing on the desktop** | Übersicht widgets sit behind windows — show the desktop. Or open the Übersicht menu-bar icon → **Refresh All**. |
 | **Numbers differ from `/usage`** | This widget shows **used %** by default (e.g. `37%`), matching `/usage`. Flip `usedOf()` to `100 - …` for "remaining". |
 | **Keychain prompt keeps appearing** | Click **Always Allow** (not just Allow) once. |
+| **`/opt/homebrew is not writable` during install** | Harmless — the installer auto-falls back to a direct download of Übersicht. To fix Homebrew itself: `sudo chown -R "$(whoami)" /opt/homebrew`. |
 
 ## 🗺️ Roadmap
 
