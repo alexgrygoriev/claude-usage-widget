@@ -42,8 +42,9 @@ if printf '%s' "$OUT" | grep -q '"error"'; then
   exit 0
 fi
 
-# Success: validate it has the expected shape, cache it, emit it.
-if printf '%s' "$OUT" | grep -q '"five_hour"'; then
+# Success: validate it has one of the expected shapes — the canonical `limits`
+# array, or the older flat `five_hour` bucket — then cache it and emit it.
+if printf '%s' "$OUT" | grep -qE '"limits"|"five_hour"'; then
   printf '%s' "$OUT" > "$CACHE"
 fi
 echo "$OUT"

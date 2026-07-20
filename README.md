@@ -31,7 +31,8 @@ This widget puts those exact numbers on your desktop, refreshing itself quietly 
 ## ✨ Features
 
 - 📊 **The real numbers** — pulls from the same official endpoint that powers Claude's `/usage`. Not an estimate from local logs.
-- ⏱️ **All your windows at once** — 5-hour session, 7-day rolling, and per-model (Sonnet / Opus) limits, each with its reset time.
+- ⏱️ **All your windows at once** — 5-hour session, 7-day rolling, and per-model limits (Fable, Opus, Sonnet — whichever your plan caps), each with its reset time.
+- 🆕 **Keeps up with new models** — rows come straight from the API's own limit list, so a newly capped model appears on its own without a widget update. The window currently being consumed is shown in bold.
 - 🎨 **Native, airy design** — frosted-glass card that blends into your wallpaper like a first-party widget.
 - 🟢🟡🔴 **Traffic-light bars** — green while you have room, amber as it fills, red when you're about to hit the wall.
 - 🔌 **Auto-refresh** — updates every 5 minutes; never touches the network more than it needs to.

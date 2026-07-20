@@ -65,10 +65,34 @@ def used_of(w):
     if not isinstance(w, dict) or w.get("utilization") is None: return None, None
     return round(float(w["utilization"])), w.get("resets_at")
 
+WINDOW = {"session": "5h", "weekly": "7d"}
+
+def label_for(l):
+    win = WINDOW.get(l.get("group")) or ("5h" if l.get("kind") == "session" else "7d")
+    scope = l.get("scope") or {}
+    model = (scope.get("model") or {}).get("display_name")
+    surface = scope.get("surface")
+    if isinstance(surface, dict): surface = surface.get("display_name")
+    if model: return "%s %s" % (model, win)
+    if surface: return "%s %s" % (surface, win)
+    return "%s %s" % ("Session" if l.get("kind") == "session" else "Week", win)
+
 d = json.load(sys.stdin)
-rows = [("Session 5h","five_hour"),("Week 7d","seven_day"),
-        ("Opus 7d","seven_day_opus"),("Sonnet 7d","seven_day_sonnet")]
-parsed = [(lbl,)+used_of(d.get(k)) for lbl,k in rows]
+
+# The endpoint now returns a canonical `limits[]` array; the old flat buckets
+# (seven_day_opus / seven_day_sonnet / ...) come back as null even when a
+# per-model cap exists. Each entry carries its own kind/scope, so model rows
+# (Fable, Opus, Sonnet, ...) show up automatically as Anthropic adds them.
+# The flat buckets stay as a fallback for older responses.
+limits = d.get("limits")
+if isinstance(limits, list) and any(l.get("percent") is not None for l in limits):
+    parsed = [(label_for(l), round(float(l["percent"])), l.get("resets_at"))
+              for l in limits if l.get("percent") is not None]
+else:
+    legacy = [("Session 5h","five_hour"),("Week 7d","seven_day"),
+              ("Opus 7d","seven_day_opus"),("Sonnet 7d","seven_day_sonnet")]
+    parsed = [(lbl,)+used_of(d.get(k)) for lbl,k in legacy]
+    parsed = [r for r in parsed if r[1] is not None]
 
 # menu bar = tightest active window (max used %)
 vals = [u for _,u,_ in parsed if u is not None]
@@ -80,12 +104,11 @@ else:
 
 print("---")
 print("Claude — used | size=11 color=#8b949e")
+if not parsed:
+    print(f"No limits reported | color={GRAY}")
 for lbl,u,reset in parsed:
-    if u is None:
-        print(f"{lbl}:  — | color={GRAY}")
-    else:
-        rs = fmt(reset); tail = f"  · resets {rs}" if rs else ""
-        print(f"{lbl}:  {u}%{tail} | color={color(u)}")
+    rs = fmt(reset); tail = f"  · resets {rs}" if rs else ""
+    print(f"{lbl}:  {u}%{tail} | color={color(u)}")
 print("---")
 print("Refresh | refresh=true")
 '

@@ -168,6 +168,59 @@ const usedOf = (w) => {
   return Math.round(Number(w.utilization));
 };
 
+// ---------------------------------------------------------------------------
+// Row extraction.
+//
+// The endpoint now returns a canonical `limits[]` array; the old flat buckets
+// (seven_day_opus / seven_day_sonnet / …) come back as null even when a
+// per-model cap exists. Each entry carries its own kind/scope, so model rows
+// (Fable, Opus, Sonnet, …) and surface rows appear automatically as Anthropic
+// adds them — no hard-coded model list to keep in sync.
+//
+// `limits[]` is preferred; the flat buckets stay as a fallback for older
+// responses (and for anything cached from before the switch).
+// ---------------------------------------------------------------------------
+
+const WINDOW_LABEL = { session: "5h", weekly: "7d" };
+
+const labelForLimit = (l) => {
+  const win = WINDOW_LABEL[l.group] || (l.kind === "session" ? "5h" : "7d");
+  const model = l.scope && l.scope.model && l.scope.model.display_name;
+  const surface = l.scope && l.scope.surface;
+  const surfaceName = typeof surface === "string" ? surface : surface && surface.display_name;
+  if (model) return `${model} · ${win}`;
+  if (surfaceName) return `${surfaceName} · ${win}`;
+  if (l.kind === "session") return `Session · ${win}`;
+  return `Week · ${win}`;
+};
+
+const rowsFromLimits = (d) => {
+  if (!d || !Array.isArray(d.limits)) return null;
+  const rows = d.limits
+    .filter((l) => l && l.percent != null)
+    .map((l) => ({
+      label: labelForLimit(l),
+      used: Math.round(Number(l.percent)),
+      resetsAt: l.resets_at,
+      active: l.is_active === true,
+    }));
+  return rows.length ? rows : null;
+};
+
+const rowsFromLegacy = (d) => {
+  if (!d) return [];
+  return [
+    ["Session · 5h", d.five_hour],
+    ["Week · 7d", d.seven_day],
+    ["Sonnet · 7d", d.seven_day_sonnet],
+    ["Opus · 7d", d.seven_day_opus],
+  ]
+    .filter(([, w]) => usedOf(w) != null)
+    .map(([label, w]) => ({ label, used: usedOf(w), resetsAt: w.resets_at, active: false }));
+};
+
+const rowsFor = (d) => rowsFromLimits(d) || rowsFromLegacy(d);
+
 const fmtReset = (iso) => {
   if (!iso) return "";
   const t = new Date(iso);
@@ -208,14 +261,13 @@ const buttonStyle = {
 
 const msgStyle = { fontSize: 13, color: "#a1a1a6" };
 
-const Row = ({ label, w, last }) => {
-  const used = usedOf(w);
+const Row = ({ label, used, resetsAt, active, last }) => {
   const c = colorFor(used);
-  const reset = used == null ? "" : fmtReset(w && w.resets_at);
+  const reset = used == null ? "" : fmtReset(resetsAt);
   return (
     <div style={{ marginBottom: last ? 0 : 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-        <span style={{ fontSize: 13, color: "#3c3c43", letterSpacing: 0.1 }}>{label}</span>
+        <span style={{ fontSize: 13, color: active ? "#1d1d1f" : "#3c3c43", fontWeight: active ? 600 : 400, letterSpacing: 0.1 }}>{label}</span>
         <span style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
           {reset ? <span style={{ fontSize: 10.5, color: "#a1a1a6", fontWeight: 400 }}>{reset}</span> : null}
           <span style={{ fontSize: 16, fontWeight: 600, color: "#1d1d1f", letterSpacing: -0.2 }}>
@@ -281,18 +333,12 @@ export const render = (state, dispatch) => {
   } else if (d.error) {
     body = <div style={{ ...msgStyle, color: "#ff9f0a" }}>No connection</div>;
   } else {
-    // Buckets from /api/oauth/usage. Only rows the API actually populates are
-    // shown — buckets it returns as null (e.g. seven_day_opus on plans without
-    // a separate Opus cap) are dropped instead of rendering a permanent "—".
-    const rows = [
-      ["Session · 5h", d.five_hour],
-      ["Week · 7d", d.seven_day],
-      ["Sonnet · 7d", d.seven_day_sonnet],
-      ["Opus · 7d", d.seven_day_opus],
-    ].filter(([, w]) => usedOf(w) != null);
-    body = rows.map(([label, w], i) => (
-      <Row key={label} label={label} w={w} last={i === rows.length - 1} />
-    ));
+    // Only windows the API actually reports are shown — anything it leaves out
+    // is dropped rather than rendering a permanent "—".
+    const rows = rowsFor(d);
+    body = rows.length
+      ? rows.map((r, i) => <Row key={r.label} {...r} last={i === rows.length - 1} />)
+      : <div style={msgStyle}>No limits reported</div>;
   }
 
   return (
